@@ -1,0 +1,26 @@
+# Compiles Assets.xcassets into Assets.car with actool and attaches it (with its loose icons and partial.plist).
+name: Compile app icon
+on:
+  workflow_dispatch:
+  push:
+jobs:
+  actool:
+    runs-on: macos-15-intel
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          xcrun actool Assets.xcassets --compile out --platform iphoneos --minimum-deployment-target 17.0 \
+            --target-device iphone --target-device ipad --app-icon AppIcon --include-all-app-icons \
+            --output-partial-info-plist out/partial.plist --output-format human-readable-text --errors --warnings
+          plutil -convert xml1 out/partial.plist
+          xcodebuild -version | head -1 > out/XCODE.txt
+          ls -la out
+          test -f out/Assets.car
+      - uses: actions/upload-artifact@v4
+        with:
+          name: compiled
+          path: out/
